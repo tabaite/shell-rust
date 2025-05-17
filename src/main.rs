@@ -24,6 +24,15 @@ fn main() {
                     Some("0") => std::process::exit(0),
                     _ => {}
                 },
+                "type" => match args_iter.next() {
+                    Some(s) => match s {
+                        builtin if
+                            builtin == "exit" || builtin == "type" || builtin == "echo"
+                            => println!("{} is a shell builtin", builtin),
+                        other => println!("{}: not found", other),
+                    },
+                    _ => {},
+                },
                 "echo" => {
                     for v in args_iter {
                         print!("{} ", v);
