@@ -6,6 +6,15 @@ use std::{
 };
 
 static BUILTINS: phf::Map::<&str, fn(args: std::str::Split<'_, &str>, path: &std::collections::HashMap<String, String>) -> ()> = phf::phf_map! {
+    "cd" => |mut args: std::str::Split<'_, &str>, _| {
+        let arg = args.next();
+        match arg {
+            Some(path) => {
+                env::set_current_dir(path);
+            },
+            None => {},
+        }
+    },
     "echo" => |args: std::str::Split<'_, &str>, _| {
         for v in args {
             print!("{} ", v);
