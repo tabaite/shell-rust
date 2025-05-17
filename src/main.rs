@@ -5,6 +5,44 @@ use std::{
     io::{self, Write},
 };
 
+static BUILTINS: phf::Map::<&str, fn(args: std::str::Split<'_, &str>, path: &std::collections::HashMap<String, String>) -> ()> = phf::phf_map! {
+    "echo" => |args: std::str::Split<'_, &str>, _| {
+        for v in args {
+            print!("{} ", v);
+        }
+        println!("");
+    },
+    "exit" => |mut args: std::str::Split<'_, &str>, _| {
+        match args.next() {
+            Some("0") => std::process::exit(0),
+            _ => {}
+        };
+    },
+    "pwd" => |_args: std::str::Split<'_, &str>, _| {
+        match env::current_dir() {
+            Ok(path) => match path.as_os_str().to_str() {
+                Some(s) => println!("{}", s),
+                None => println!("ewww ascii"),
+            },
+            Err(err) => println!("error: {}", err),
+        }
+    },
+    "type" => |mut args: std::str::Split<'_, &str>, path: &std::collections::HashMap<String, String>| {
+        match args.next() {
+            Some(s) => match s {
+                builtin if builtin == "exit" || builtin == "type" || builtin == "echo" || builtin == "pwd" => {
+                    println!("{} is a shell builtin", builtin)
+                }
+                other => match path.get(other) {
+                    Some(path) => println!("{} is {}", other, path),
+                    None => println!("{}: not found", other),
+                },
+            },
+            _ => {}
+        }
+    },
+};
+
 fn main() {
     // This doesn't really feel good, but we'll deal with this later.
     let mut path_map = std::collections::HashMap::new();
@@ -54,43 +92,14 @@ fn main() {
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
 
-        let mut args_iter = input.trim().split(' ').into_iter();
+        let mut args_iter = input.trim().split(" ").into_iter();
         let command = args_iter.next();
         match command {
             Some(c) => match c {
                 "" => continue,
-                // hacky, but we'll implement this properly later
-                "exit" => match args_iter.next() {
-                    Some("0") => std::process::exit(0),
-                    _ => {}
-                },
-                "type" => match args_iter.next() {
-                    Some(s) => match s {
-                        builtin if builtin == "exit" || builtin == "type" || builtin == "echo" || builtin == "pwd" => {
-                            println!("{} is a shell builtin", builtin)
-                        }
-                        other => match path_map.get(other) {
-                            Some(path) => println!("{} is {}", other, path),
-                            None => println!("{}: not found", other),
-                        },
-                    },
-                    _ => {}
-                },
-                "echo" => {
-                    for v in args_iter {
-                        print!("{} ", v);
-                    }
-                    println!("");
-                },
-                "pwd" => {
-                    match env::current_dir() {
-                        Ok(path) => match path.as_os_str().to_str() {
-                            Some(s) => println!("{}", s),
-                            None => println!("ewww ascii"),
-                        },
-                        Err(err) => println!("error: {}", err),
-                    }
-                },
+                builtin if BUILTINS.contains_key(builtin) => {
+                    BUILTINS.get(builtin).unwrap()(args_iter, &path_map);
+                }
                 // TODO: we don't need to get the path, that's expensive
                 other => match path_map.contains_key(other) {
                     true => {
