@@ -15,13 +15,13 @@ fn main() {
                     match file_res {
                         Ok(entry) => {
                             let path = entry.path();
-                            let name = path.file_stem().unwrap().to_str();
-                            if name.is_some() {
+                            let stem = path.file_stem().unwrap().to_str();
+                            if stem.is_some() {
+                                let name = stem.unwrap();
                                 path_map.insert(
-                                    name
-                                        .unwrap()
+                                   name
                                         .to_owned(),
-                                    "path path".to_owned(),
+                                    path.as_os_str().to_str().unwrap().to_owned(),
                                 );
                             }
                         },
@@ -63,7 +63,10 @@ fn main() {
                         builtin if
                             builtin == "exit" || builtin == "type" || builtin == "echo"
                             => println!("{} is a shell builtin", builtin),
-                        other => println!("{}: not found", other),
+                        other => match path_map.get(other) {
+                            Some(path) => println!("{} is {}", other, path),
+                            None => println!("{}: not found", other),
+                        }
                     },
                     _ => {},
                 },
