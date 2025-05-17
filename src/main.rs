@@ -66,7 +66,7 @@ fn main() {
                 },
                 "type" => match args_iter.next() {
                     Some(s) => match s {
-                        builtin if builtin == "exit" || builtin == "type" || builtin == "echo" => {
+                        builtin if builtin == "exit" || builtin == "type" || builtin == "echo" || builtin == "pwd" => {
                             println!("{} is a shell builtin", builtin)
                         }
                         other => match path_map.get(other) {
