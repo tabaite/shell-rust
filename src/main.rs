@@ -7,8 +7,8 @@ use std::{
 
 mod parser;
 
-static BUILTINS: phf::Map::<&str, fn(args: std::str::Split<'_, &str>, path: &std::collections::HashMap<String, String>) -> ()> = phf::phf_map! {
-    "cd" => |mut args: std::str::Split<'_, &str>, _| {
+static BUILTINS: phf::Map::<&str, fn(args: parser::SplitArgsIter, path: &std::collections::HashMap<String, String>) -> ()> = phf::phf_map! {
+    "cd" => |mut args, _| {
         let arg = args.next();
         match arg {
             // Change this to allow paths other than ~
@@ -49,19 +49,19 @@ static BUILTINS: phf::Map::<&str, fn(args: std::str::Split<'_, &str>, path: &std
             None => {},
         }
     },
-    "echo" => |args: std::str::Split<'_, &str>, _| {
+    "echo" => |args, _| {
         for v in args {
             print!("{} ", v);
         }
         println!("");
     },
-    "exit" => |mut args: std::str::Split<'_, &str>, _| {
+    "exit" => |mut args, _| {
         match args.next() {
             Some("0") => std::process::exit(0),
             _ => {}
         };
     },
-    "pwd" => |_args: std::str::Split<'_, &str>, _| {
+    "pwd" => |_args, _| {
         match env::current_dir() {
             Ok(path) => match path.as_os_str().to_str() {
                 Some(s) => println!("{}", s),
@@ -70,7 +70,7 @@ static BUILTINS: phf::Map::<&str, fn(args: std::str::Split<'_, &str>, path: &std
             Err(err) => println!("error: {}", err),
         }
     },
-    "type" => |mut args: std::str::Split<'_, &str>, path: &std::collections::HashMap<String, String>| {
+    "type" => |mut args, path| {
         match args.next() {
             Some(s) => match s {
                 builtin if BUILTINS.contains_key(builtin) => {
@@ -135,7 +135,7 @@ fn main() {
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
 
-        let mut args_iter = input.trim().split(" ").into_iter();
+        let mut args_iter = parser::SplitArgsIter::new(input.trim());
         let command = args_iter.next();
         match command {
             Some(c) => match c {
