@@ -78,9 +78,10 @@ fn main() {
                     }
                     println!("");
                 },
-                _ => {
-                    println!("{}: command not found", input.trim());
-                },
+                other => match path_map.get(other) {
+                    Some(path) => println!("{} is {}", other, path),
+                    None => println!("{}: command not found", input.trim()),
+                }
             }
             None => {
                 continue;
