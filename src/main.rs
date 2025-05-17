@@ -9,6 +9,33 @@ static BUILTINS: phf::Map::<&str, fn(args: std::str::Split<'_, &str>, path: &std
     "cd" => |mut args: std::str::Split<'_, &str>, _| {
         let arg = args.next();
         match arg {
+            // Change this to allow paths other than ~
+            Some("~") => {
+                let home = match env::consts::OS {
+                    "windows" => {
+                        env::var_os("UserProfile")
+                    },
+                    _ => {
+                        env::var_os("HOME")
+                    }
+                };
+                match home {
+                    Some(v) => {
+                        let path = v.to_str();
+                        if path.is_some() {
+                            match env::set_current_dir(path.unwrap()) {
+                                Ok(_) => {},
+                                Err(e) => match e.raw_os_error() {
+                                    // windows: no file
+                                    Some(2) => println!("cd: {}: No such file or directory", path.unwrap()),
+                                    _ => println!("error: {}", e),
+                                },
+                            }
+                        }
+                    },
+                    None => println!("no home variable!!!!"),
+                }
+            },
             Some(path) => match env::set_current_dir(path) {
                 Ok(_) => {},
                 Err(e) => match e.raw_os_error() {
