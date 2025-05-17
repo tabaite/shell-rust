@@ -18,11 +18,13 @@ fn main() {
                             let stem = path.file_stem().unwrap().to_str();
                             if stem.is_some() {
                                 let name = stem.unwrap();
-                                path_map.insert(
-                                   name
-                                        .to_owned(),
-                                    path.as_os_str().to_str().unwrap().to_owned(),
-                                );
+                                if !path_map.contains_key(name) {
+                                    path_map.insert(
+                                    name
+                                            .to_owned(),
+                                        path.as_os_str().to_str().unwrap().to_owned(),
+                                    );
+                                }
                             }
                         },
                         Err(_) => {}
