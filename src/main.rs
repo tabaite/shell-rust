@@ -12,6 +12,16 @@ fn main() {
         // Wait for user input
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
-        println!("{}: command not found", input.trim());
+
+        match input.trim() {
+            // hacky, but we'll implement this properly later
+            "exit 0" => {
+                std::process::exit(0);
+            },
+            _ => {
+                println!("{}: command not found", input.trim());
+            }
+        }
+
     }
 }
