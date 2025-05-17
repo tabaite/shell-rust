@@ -9,9 +9,14 @@ static BUILTINS: phf::Map::<&str, fn(args: std::str::Split<'_, &str>, path: &std
     "cd" => |mut args: std::str::Split<'_, &str>, _| {
         let arg = args.next();
         match arg {
-            Some(path) => {
-                env::set_current_dir(path);
-            },
+            Some(path) => match env::set_current_dir(path) {
+                Ok(_) => {},
+                Err(e) => match e.raw_os_error() {
+                    // windows: no file
+                    Some(2) => println!("cd: {}: No such file or directory", path),
+                    _ => println!("error: {}", e),
+                },
+            }
             None => {},
         }
     },
