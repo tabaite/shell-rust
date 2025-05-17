@@ -1,7 +1,41 @@
 #[allow(unused_imports)]
-use std::io::{self, Write};
+use std::{io::{self, Write}, env};
 
 fn main() {
+    // This doesn't really feel good, but we'll deal with this later.
+    let mut path_map = std::collections::HashMap::new();
+    //setup PATH
+    let key = "PATH";
+    match env::var_os(key) {
+        Some(paths) => {
+            for path in env::split_paths(&paths) {
+                let d = std::fs::read_dir(path);
+                match d {
+                    Ok(dir_iter) => for file_res in dir_iter {
+                    match file_res {
+                        Ok(entry) => {
+                            let path = entry.path();
+                            let name = path.file_stem().unwrap().to_str();
+                            if name.is_some() {
+                                path_map.insert(
+                                    name
+                                        .unwrap()
+                                        .to_owned(),
+                                    "path path".to_owned(),
+                                );
+                            }
+                        },
+                        Err(_) => {}
+                    }
+                }
+                    // Windows error: file not found
+                    Err(e) if e.raw_os_error() == Some(3) => {},
+                    Err(e) => println!("error: {}", e),
+                }
+            }
+        }
+        None => println!("{key} is not defined in the environment.")
+    }
 
     // Infinite loop for running
     loop {
