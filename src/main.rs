@@ -81,7 +81,16 @@ fn main() {
                         print!("{} ", v);
                     }
                     println!("");
-                }
+                },
+                "pwd" => {
+                    match env::current_dir() {
+                        Ok(path) => match path.as_os_str().to_str() {
+                            Some(s) => println!("{}", s),
+                            None => println!("ewww ascii"),
+                        },
+                        Err(err) => println!("error: {}", err),
+                    }
+                },
                 // TODO: we don't need to get the path, that's expensive
                 other => match path_map.contains_key(other) {
                     true => {
