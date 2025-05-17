@@ -9,34 +9,34 @@ fn main() {
     match env::var_os(key) {
         Some(paths) => {
             for path in env::split_paths(&paths) {
-                let d = std::fs::read_dir(path);
-                match d {
-                    Ok(dir_iter) => for file_res in dir_iter {
-                    match file_res {
-                        Ok(entry) => {
-                            let path = entry.path();
-                            let stem = path.file_stem().unwrap().to_str();
-                            if stem.is_some() {
-                                let name = stem.unwrap();
-                                if !path_map.contains_key(name) {
-                                    path_map.insert(
-                                    name
-                                            .to_owned(),
-                                        path.as_os_str().to_str().unwrap().to_owned(),
-                                    );
+                let dir_result = std::fs::read_dir(path);
+                match dir_result {
+                    Ok(dir_iter) => for file_result in dir_iter {
+                        match file_result {
+                            Ok(entry) => {
+                                let path = entry.path();
+                                let stem = path.file_stem().unwrap().to_str();
+                                if stem.is_some() {
+                                    let name = stem.unwrap();
+                                    if !path_map.contains_key(name) {
+                                        path_map.insert(
+                                        name
+                                                .to_owned(),
+                                            path.as_os_str().to_str().unwrap().to_owned(),
+                                        );
+                                    }
                                 }
-                            }
-                        },
-                        Err(_) => {}
+                            },
+                            Err(_) => {}
+                        }
                     }
-                }
                     // Windows error: file not found
                     Err(e) if e.raw_os_error() == Some(3) => {},
                     Err(e) => println!("error: {}", e),
                 }
             }
         }
-        None => println!("{key} is not defined in the environment.")
+        None => println!("no path?????")
     }
 
     // Infinite loop for running
