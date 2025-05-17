@@ -13,15 +13,30 @@ fn main() {
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
 
-        match input.trim() {
-            // hacky, but we'll implement this properly later
-            "exit 0" => {
-                std::process::exit(0);
-            },
-            _ => {
-                println!("{}: command not found", input.trim());
+        let mut args_iter = input.trim().split(' ').into_iter();
+        let command = args_iter.next();
+        match command {
+            // in future, get args
+            Some(c) => match c {
+                "" => continue,
+                // hacky, but we'll implement this properly later
+                "exit" => match args_iter.next() {
+                    Some("0") => std::process::exit(0),
+                    _ => {}
+                },
+                "echo" => {
+                    for v in args_iter {
+                        print!("{} ", v);
+                    }
+                    println!("");
+                },
+                _ => {
+                    println!("{}: command not found", input.trim());
+                },
+            }
+            None => {
+                continue;
             }
         }
-
     }
 }
