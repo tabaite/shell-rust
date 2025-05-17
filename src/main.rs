@@ -30,7 +30,7 @@ static BUILTINS: phf::Map::<&str, fn(args: std::str::Split<'_, &str>, path: &std
     "type" => |mut args: std::str::Split<'_, &str>, path: &std::collections::HashMap<String, String>| {
         match args.next() {
             Some(s) => match s {
-                builtin if builtin == "exit" || builtin == "type" || builtin == "echo" || builtin == "pwd" => {
+                builtin if BUILTINS.contains_key(builtin) => {
                     println!("{} is a shell builtin", builtin)
                 }
                 other => match path.get(other) {
