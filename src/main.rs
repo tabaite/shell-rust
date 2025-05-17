@@ -83,14 +83,20 @@ fn main() {
                     println!("");
                 }
                 // TODO: we don't need to get the path, that's expensive
-                other => match path_map.get(other) {
-                    Some(path) => {
-                        println!("{} is {}", other, path);
-
-                        let result =
-                            Command::new(other).args::<Vec<&str>, &str>(args_iter.collect());
+                other => match path_map.contains_key(other) {
+                    true => {
+                        let result = Command::new(other)
+                            .stdout(io::stdout())
+                            .stderr(io::stderr())
+                            .args::<Vec<&str>, &str>(args_iter.collect()).output();
+                        match result {
+                            Ok(_) => {},
+                            Err(e) => {
+                                println!("{}", e);
+                            },
+                        }
                     }
-                    None => println!("{}: command not found", input.trim()),
+                    false => println!("{}: command not found", input.trim()),
                 },
             },
             None => {
