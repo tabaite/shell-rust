@@ -5,6 +5,8 @@ use std::{
     io::{self, Write},
 };
 
+mod parser;
+
 static BUILTINS: phf::Map::<&str, fn(args: std::str::Split<'_, &str>, path: &std::collections::HashMap<String, String>) -> ()> = phf::phf_map! {
     "cd" => |mut args: std::str::Split<'_, &str>, _| {
         let arg = args.next();
