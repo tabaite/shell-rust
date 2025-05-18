@@ -44,6 +44,15 @@ pub fn test_split_args_single_quotes() {
     assert_eq!("batfat", args.next().unwrap());
 }
 
+#[test]
+pub fn test_split_args_double_quotes() {
+    let string = "\"joker\"\"joRker\"    \"la' le' lu' le' lo'\"";
+    let mut args = SplitArgsIter::new(string);
+
+    assert_eq!("jokerjoRker", args.next().unwrap());
+    assert_eq!("la' le' lu' le' lo'", args.next().unwrap());
+}
+
 impl Iterator for SplitArgsIter {
     type Item = String;
 
