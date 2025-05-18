@@ -61,6 +61,14 @@ pub fn test_split_args_escape_space() {
     assert_eq!("hey    man", args.next().unwrap());
 }
 
+#[test]
+pub fn test_split_args_escape_double_quotes() {
+    let string = "\"world'shell'\\\\ 'example\"";
+    let mut args = SplitArgsIter::new(string);
+
+    assert_eq!("world'shell'\\ 'example", args.next().unwrap());
+}
+
 impl Iterator for SplitArgsIter {
     type Item = String;
 
@@ -115,10 +123,12 @@ impl Iterator for SplitArgsIter {
         for i in first_position..bytes.len() {
             let current_char = bytes[i];
             match current_char {
-                b'\\' if current_param_type == ParamType::Whitespace && !ignore_next => {
+                b'\\' if current_param_type == ParamType::Whitespace || current_param_type == ParamType::DoubleQuoted && !ignore_next => {
                     ignore_character_list.push(i - first_position);
                     ignore_next = true;
                 },
+                // special ignoring rules for double quotes
+                double_quoted_special if double_quoted_special == b'$' || double_quoted_special == b'\\' || double_quoted_special == b'"' && ignore_next => ignore_next = false,
                 // if we want to ignore the next character, then do nothing
                 _ if ignore_next => ignore_next = false,
                 // single quote start
