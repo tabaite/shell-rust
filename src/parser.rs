@@ -53,6 +53,14 @@ pub fn test_split_args_double_quotes() {
     assert_eq!("la' le' lu' le' lo'", args.next().unwrap());
 }
 
+#[test]
+pub fn test_split_args_escape_space() {
+    let string = "hey\\ \\ \\ \\ man";
+    let mut args = SplitArgsIter::new(string);
+
+    assert_eq!("hey    man", args.next().unwrap());
+}
+
 impl Iterator for SplitArgsIter {
     type Item = String;
 
@@ -97,6 +105,9 @@ impl Iterator for SplitArgsIter {
 
         // if the first char is a quote, it'll override anyways
         let mut current_param_type = ParamType::Whitespace;
+        // used for escape characters
+        let mut ignore_next = false;
+
         // next: use a while loop to scan through
         // our parameter. if we are currently inside a quote (denoted by current_param_type),
         // ignore all whitespace.
@@ -104,6 +115,11 @@ impl Iterator for SplitArgsIter {
         for i in first_position..bytes.len() {
             let current_char = bytes[i];
             match current_char {
+                b'\\' if current_param_type == ParamType::Whitespace && !ignore_next => {
+                    ignore_next = true;
+                },
+                // if we want to ignore the next character, then do nothing
+                _ if ignore_next => ignore_next = false,
                 // single quote start
                 b'\'' if current_param_type == ParamType::Whitespace => {
                     quotes_list.push(i - first_position);
