@@ -8,10 +8,11 @@ pub struct SplitArgsIter<'a> {
 
 impl<'a> SplitArgsIter<'a> {
     pub fn new(string: &'a str) -> Self {
+        let len = string.len();
         Self {
             backing_str: string,
             current_index: 0,
-            length: string.len(),
+            length: len,
         }
     }
 }
@@ -30,13 +31,12 @@ pub fn test_split_args_whitespace() {
 
 #[test]
 pub fn test_split_args_single_quotes() {
-    let string = "'cat sat'   s 'bat' 'fat'";
+    let string = "'cat sat'   s 'bat''fat'";
     let mut args = SplitArgsIter::new(string);
 
     assert_eq!("cat sat", args.next().unwrap());
     assert_eq!("s", args.next().unwrap());
-    assert_eq!("bat", args.next().unwrap());
-    assert_eq!("fat", args.next().unwrap());
+    assert_eq!("batfat", args.next().unwrap());
 }
 
 impl<'a> Iterator for SplitArgsIter<'a> {
@@ -55,42 +55,81 @@ impl<'a> Iterator for SplitArgsIter<'a> {
             DoubleQuoted,
         }
 
-        let mut seen_param = false;
-        let mut current_param_type = ParamType::Whitespace;
+        /*
+        we have total control over the string, so we can reorganize it to suit our needs
+        when we submit the next.
 
-        let bytes = self.backing_str.as_bytes();
-        for i in self.current_index..self.length {
+
+        then: when we reach the end of our parameter, we set our starting position
+        (for the next iteration) to the character right after the parameter.
+        iterate over our parameter, and "bubble" all of the quotes to the end.
+        then, return our clipped string.
+        */
+
+        let bytes= &self.backing_str.as_bytes()[self.current_index..];
+
+        // first: move through whitespace until we find the start of the next iter.
+        let find_result = bytes.iter().enumerate().find(|(_, c)| { **c != b' ' });
+
+        let (first_position, _) = match find_result {
+            Some((f, _)) => (f, 0),
+            // the rest is nothing but whitespace
+            None => return None
+        };
+
+        // TODO: handle the case where it's just one big parameter
+
+        // we use the first character to determine which parameter type to start with.
+        let mut current_param_type = match bytes[first_position] {
+            b'\'' => ParamType::SingleQuoted,
+            b'"' => ParamType::DoubleQuoted,
+            _ => ParamType::Whitespace,
+        };
+
+        // next: use a while loop to scan through
+        // our parameter. if we are currently inside a quote (denoted by current_param_type),
+        // ignore all whitespace.
+        // consuming the first char is fine since we already check it.
+        for i in first_position..bytes.len() {
             let current_char = bytes[i];
             match current_char {
-                //                                                     we don't want a bunch of blank params
-                b' ' if current_param_type == ParamType::Whitespace && seen_param => {
-                    let result = Some(unsafe { str::from_utf8_unchecked(&bytes[self.current_index..i]) });
-                    // We want to start at the space AFTER we encounter the space.
-                    // If this causes current index to be greater than the length,
-                    // it's still safe.
-                    self.current_index = i+1;
-                    return result;
-                },
-                b' '  if current_param_type == ParamType::Whitespace => self.current_index = i+1,
+                // single quote start
                 b'\'' if current_param_type == ParamType::Whitespace => {
                     current_param_type = ParamType::SingleQuoted;
-                    self.current_index = i+1;
                 },
+                // single quote end
                 b'\'' if current_param_type == ParamType::SingleQuoted => {
-                    let result = Some(unsafe { str::from_utf8_unchecked(&bytes[self.current_index..i]) });
-                    // We want to start at the space AFTER we encounter the space.
-                    // If this causes current index to be greater than the length,
-                    // it's still safe.
-                    self.current_index = i+1;
+                    current_param_type = ParamType::Whitespace;
+
+                },
+                // double quote start
+                b'\'' if current_param_type == ParamType::Whitespace => {
+                    current_param_type = ParamType::DoubleQuoted;
+
+                },
+                // double quote end
+                b'\'' if current_param_type == ParamType::DoubleQuoted => {
+                    current_param_type = ParamType::Whitespace;
+
+                },
+                // whitespace (in whitespace mode)
+                b' ' if current_param_type == ParamType::Whitespace => {
+                    let param_bytes = &bytes[first_position..i];
+                    self.current_index += i+1;
+
+                    let result = Some( unsafe { std::str::from_utf8_unchecked(&param_bytes) } );
                     return result;
-                }
-                _ => seen_param = true,
+                    // we need to organize and get rid of the stuff
+                },
+                // just a normal character
+                _ => {}
             }
         }
-        // We've reached the end
-        // what we have currently is what we will return
-        let result = Some(unsafe { str::from_utf8_unchecked(&bytes[self.current_index..self.length]) });
-        self.current_index = self.length;
-        result
+
+        let param_bytes = &bytes[first_position..];
+        self.current_index += self.length;
+
+        let result = Some( unsafe { std::str::from_utf8_unchecked(&param_bytes) } );
+        return result;
     }
 }
