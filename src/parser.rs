@@ -39,8 +39,7 @@ pub fn test_split_args_single_quotes() {
     let string = "'cat sat'   s 'bat''fat'";
     let mut args = SplitArgsIter::new(string);
 
-    //assert_eq!("cat sat", args.next().unwrap());
-    args.next();
+    assert_eq!("cat sat", args.next().unwrap());
     assert_eq!("s", args.next().unwrap());
     assert_eq!("batfat", args.next().unwrap());
 }
@@ -115,10 +114,11 @@ impl Iterator for SplitArgsIter {
                 },
                 // whitespace (in whitespace mode)
                 b' ' if current_param_type == ParamType::Whitespace => {
-                    let param_bytes = &bytes[first_position..i];
                     self.current_index += i+1;
+                    let param_bytes = &bytes[first_position..i];
+                    let param = unsafe { std::str::from_utf8_unchecked(&param_bytes).to_owned() }.replace(['"', '\''], "");
 
-                    let result = Some( unsafe { std::str::from_utf8_unchecked(&param_bytes).to_owned() } );
+                    let result = Some(param);
                     return result;
                     // we need to organize and get rid of the stuff
                 },
@@ -130,7 +130,7 @@ impl Iterator for SplitArgsIter {
         let param_bytes = &bytes[first_position..];
         self.current_index += self.length;
 
-        let result = Some( unsafe { std::str::from_utf8_unchecked(&param_bytes).to_owned() } );
+        let result = Some( unsafe { std::str::from_utf8_unchecked(&param_bytes).to_owned() }.replace(['"', '\''], "") );
         return result;
     }
 }
