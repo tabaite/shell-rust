@@ -12,7 +12,7 @@ static BUILTINS: phf::Map::<&str, fn(args: parser::SplitArgsIter, path: &std::co
         let arg = args.next();
         match arg {
             // Change this to allow paths other than ~
-            Some("~") => {
+            Some(home) if home.as_str() == "~" => {
                 let home = match env::consts::OS {
                     "windows" => {
                         env::var_os("UserProfile")
@@ -38,7 +38,7 @@ static BUILTINS: phf::Map::<&str, fn(args: parser::SplitArgsIter, path: &std::co
                     None => println!("no home variable!!!!"),
                 }
             },
-            Some(path) => match env::set_current_dir(path) {
+            Some(path) => match env::set_current_dir(path.as_str()) {
                 Ok(_) => {},
                 Err(e) => match e.raw_os_error() {
                     // windows: no file
@@ -57,7 +57,7 @@ static BUILTINS: phf::Map::<&str, fn(args: parser::SplitArgsIter, path: &std::co
     },
     "exit" => |mut args, _| {
         match args.next() {
-            Some("0") => std::process::exit(0),
+            Some(zero) if zero.as_str() == "0" => std::process::exit(0),
             _ => {}
         };
     },
@@ -72,7 +72,7 @@ static BUILTINS: phf::Map::<&str, fn(args: parser::SplitArgsIter, path: &std::co
     },
     "type" => |mut args, path| {
         match args.next() {
-            Some(s) => match s {
+            Some(s) => match s.as_str() {
                 builtin if BUILTINS.contains_key(builtin) => {
                     println!("{} is a shell builtin", builtin)
                 }
@@ -138,7 +138,7 @@ fn main() {
         let mut args_iter = parser::SplitArgsIter::new(input.trim());
         let command = args_iter.next();
         match command {
-            Some(c) => match c {
+            Some(c) => match c.as_str() {
                 "" => continue,
                 builtin if BUILTINS.contains_key(builtin) => {
                     BUILTINS.get(builtin).unwrap()(args_iter, &path_map);
@@ -149,7 +149,7 @@ fn main() {
                         let result = Command::new(other)
                             .stdout(io::stdout())
                             .stderr(io::stderr())
-                            .args::<Vec<&str>, &str>(args_iter.collect()).output();
+                            .args::<Vec<String>, String>(args_iter.collect()).output();
                         match result {
                             Ok(_) => {},
                             Err(e) => {
