@@ -101,7 +101,7 @@ impl Iterator for SplitArgsIter {
 
         // this will contain the list of indices to remove
         // RELATIVE TO THE START OF THE PARAMETER
-        let mut quotes_list = vec![];
+        let mut ignore_character_list = vec![];
 
         // if the first char is a quote, it'll override anyways
         let mut current_param_type = ParamType::Whitespace;
@@ -116,30 +116,31 @@ impl Iterator for SplitArgsIter {
             let current_char = bytes[i];
             match current_char {
                 b'\\' if current_param_type == ParamType::Whitespace && !ignore_next => {
+                    ignore_character_list.push(i - first_position);
                     ignore_next = true;
                 },
                 // if we want to ignore the next character, then do nothing
                 _ if ignore_next => ignore_next = false,
                 // single quote start
                 b'\'' if current_param_type == ParamType::Whitespace => {
-                    quotes_list.push(i - first_position);
+                    ignore_character_list.push(i - first_position);
                     current_param_type = ParamType::SingleQuoted;
                 },
                 // single quote end
                 b'\'' if current_param_type == ParamType::SingleQuoted => {
-                    quotes_list.push(i - first_position);
+                    ignore_character_list.push(i - first_position);
                     current_param_type = ParamType::Whitespace;
 
                 },
                 // double quote start
                 b'"' if current_param_type == ParamType::Whitespace => {
-                    quotes_list.push(i - first_position);
+                    ignore_character_list.push(i - first_position);
                     current_param_type = ParamType::DoubleQuoted;
 
                 },
                 // double quote end
                 b'"' if current_param_type == ParamType::DoubleQuoted => {
-                    quotes_list.push(i - first_position);
+                    ignore_character_list.push(i - first_position);
                     current_param_type = ParamType::Whitespace;
 
                 },
@@ -152,7 +153,7 @@ impl Iterator for SplitArgsIter {
                         .iter()
                         .enumerate()
                         // We can binary search since we iterate on bytes in order, any insertions will also be in order
-                        .filter(|(i, _)| { !quotes_list.binary_search(i).is_ok() })
+                        .filter(|(i, _)| { !ignore_character_list.binary_search(i).is_ok() })
                         .map(|(_, v)| { *v })
                         .collect();
 
@@ -174,7 +175,7 @@ impl Iterator for SplitArgsIter {
             .iter()
             .enumerate()
             // We can binary search since we iterate on bytes in order, any insertions will also be in order
-            .filter(|(i, _)| { !quotes_list.binary_search(i).is_ok() })
+            .filter(|(i, _)| { !ignore_character_list.binary_search(i).is_ok() })
             .map(|(_, v)| { *v })
             .collect();
 
