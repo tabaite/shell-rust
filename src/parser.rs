@@ -91,7 +91,9 @@ impl Iterator for SplitArgsIter {
             None => return None
         };
 
-        // TODO: handle the case where it's just one big parameter
+        // this will contain the list of indices to remove
+        // RELATIVE TO THE START OF THE PARAMETER
+        let mut quotes_list = vec![];
 
         // if the first char is a quote, it'll override anyways
         let mut current_param_type = ParamType::Whitespace;
@@ -104,20 +106,24 @@ impl Iterator for SplitArgsIter {
             match current_char {
                 // single quote start
                 b'\'' if current_param_type == ParamType::Whitespace => {
+                    quotes_list.push(i - first_position);
                     current_param_type = ParamType::SingleQuoted;
                 },
                 // single quote end
                 b'\'' if current_param_type == ParamType::SingleQuoted => {
+                    quotes_list.push(i - first_position);
                     current_param_type = ParamType::Whitespace;
 
                 },
                 // double quote start
                 b'"' if current_param_type == ParamType::Whitespace => {
+                    quotes_list.push(i - first_position);
                     current_param_type = ParamType::DoubleQuoted;
 
                 },
                 // double quote end
                 b'"' if current_param_type == ParamType::DoubleQuoted => {
+                    quotes_list.push(i - first_position);
                     current_param_type = ParamType::Whitespace;
 
                 },
@@ -125,7 +131,16 @@ impl Iterator for SplitArgsIter {
                 b' ' if current_param_type == ParamType::Whitespace => {
                     self.current_index += i+1;
                     let param_bytes = &bytes[first_position..i];
-                    let param = unsafe { std::str::from_utf8_unchecked(&param_bytes).to_owned() }.replace(['"', '\''], "");
+
+                    let param_without_quotes: Vec<u8> = param_bytes
+                        .iter()
+                        .enumerate()
+                        // We can binary search since we iterate on bytes in order, any insertions will also be in order
+                        .filter(|(i, _)| { !quotes_list.binary_search(i).is_ok() })
+                        .map(|(_, v)| { *v })
+                        .collect();
+
+                    let param = unsafe { std::str::from_utf8_unchecked(&param_without_quotes.as_slice()).to_owned() };
 
                     let result = Some(param);
                     return result;
@@ -139,7 +154,16 @@ impl Iterator for SplitArgsIter {
         let param_bytes = &bytes[first_position..];
         self.current_index += self.length;
 
-        let result = Some( unsafe { std::str::from_utf8_unchecked(&param_bytes).to_owned() }.replace(['"', '\''], "") );
+        let param_without_quotes: Vec<u8> = param_bytes
+            .iter()
+            .enumerate()
+            // We can binary search since we iterate on bytes in order, any insertions will also be in order
+            .filter(|(i, _)| { !quotes_list.binary_search(i).is_ok() })
+            .map(|(_, v)| { *v })
+            .collect();
+
+        let param = unsafe { std::str::from_utf8_unchecked(&param_without_quotes.as_slice()).to_owned() };
+        let result = Some(param);
         return result;
     }
 }
