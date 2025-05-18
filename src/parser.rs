@@ -63,10 +63,12 @@ pub fn test_split_args_escape_space() {
 
 #[test]
 pub fn test_split_args_escape_double_quotes() {
-    let string = "\"world'shell'\\\\ 'example\"";
+    let string = "\"/tmp/foo/'f 80'\" \"/tmp/foo/'f  \\39'\" \"/tmp/foo/'f \\17\\'\"";
     let mut args = SplitArgsIter::new(string);
 
-    assert_eq!("world'shell'\\ 'example", args.next().unwrap());
+    assert_eq!("/tmp/foo/'f 80'", args.next().unwrap());
+    assert_eq!("/tmp/foo/'f  \\39'", args.next().unwrap());
+    assert_eq!("/tmp/foo/'f \\17\\'", args.next().unwrap());
 }
 
 impl Iterator for SplitArgsIter {
@@ -129,6 +131,13 @@ impl Iterator for SplitArgsIter {
                 },
                 // special ignoring rules for double quotes
                 double_quoted_special if double_quoted_special == b'$' || double_quoted_special == b'\\' || double_quoted_special == b'"' && ignore_next => ignore_next = false,
+                // if the character is in double quotes but not ignorable, then prevent the escape from being erased
+                // any VALID ignores will be caught by the previous
+                _ if ignore_next && current_param_type == ParamType::DoubleQuoted => {
+                    ignore_next = false;
+                    // we know that the last character in this will be the pushed ignore
+                    ignore_character_list.pop();
+                },
                 // if we want to ignore the next character, then do nothing
                 _ if ignore_next => ignore_next = false,
                 // single quote start
